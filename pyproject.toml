@@ -3,7 +3,7 @@ name = "mcb-pomodoro"
 version = "0.0.1"
 description = ""
 requires-python = ">=3.14"
-dependencies = ["typer~=0.23.0", "pyobjc-framework-Cocoa~=12.0"]
+dependencies = ["typer~=0.23.1", "pyobjc-framework-Cocoa~=12.0"]
 [project.scripts]
 mcb-pomodoro = "mcb_pomodoro.cli:app"
 
