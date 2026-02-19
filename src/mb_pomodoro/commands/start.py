@@ -12,7 +12,7 @@ from mb_pomodoro.app_context import use_context
 from mb_pomodoro.db import ACTIVE_STATUSES
 from mb_pomodoro.output import StartResult
 from mb_pomodoro.process import spawn_timer_worker
-from mb_pomodoro.time_fmt import parse_duration
+from mb_pomodoro.time_utils import parse_duration
 
 logger = logging.getLogger(__name__)
 

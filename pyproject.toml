@@ -1,6 +1,6 @@
 [project]
 name = "mb-pomodoro"
-version = "0.0.2"
+version = "0.0.3"
 description = "macOS Pomodoro timer with a CLI-first workflow"
 readme = "README.md"
 license = "MIT"
@@ -65,7 +65,7 @@ ignore = [
 [tool.ruff.lint.pep8-naming]
 classmethod-decorators = ["field_validator"]
 [tool.ruff.lint.per-file-ignores]
-"tests/*.py" = ["ANN", "S"]
+"tests/**/*.py" = ["ANN", "S", "D104"]
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"

@@ -11,7 +11,7 @@ from typing import NoReturn
 import typer
 
 from mb_pomodoro.db import IntervalRow, IntervalStatus
-from mb_pomodoro.time_fmt import format_datetime, format_mmss
+from mb_pomodoro.time_utils import format_datetime, format_mmss
 
 logger = logging.getLogger(__name__)
 
@@ -70,11 +70,14 @@ class StatusActiveResult:
     worked_sec: int
     remaining_sec: int
     started_at: int
+    today_completed: int
 
 
 @dataclass(frozen=True, slots=True)
 class StatusInactiveResult:
     """Result of a status check when no interval is active."""
+
+    today_completed: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -93,6 +96,21 @@ class HistoryResult:
     """Result of a history query."""
 
     intervals: list[HistoryItem]
+
+
+@dataclass(frozen=True, slots=True)
+class DailyHistoryItem:
+    """Single day entry in daily history output."""
+
+    date: str
+    completed: int
+
+
+@dataclass(frozen=True, slots=True)
+class DailyHistoryResult:
+    """Result of a daily history query."""
+
+    days: list[DailyHistoryItem]
 
 
 @dataclass(frozen=True, slots=True)
@@ -187,6 +205,21 @@ class Output:
                 f"{format_mmss(item.worked_sec):>8}  {item.status:<9}"
             )
 
+    def print_daily_history(self, result: DailyHistoryResult) -> None:
+        """Print daily completed counts as a table or JSON."""
+        if self._json_mode:
+            print(json.dumps({"ok": True, "data": {"days": [asdict(item) for item in result.days]}}))
+            return
+
+        if not result.days:
+            print("No completed intervals found.")
+            return
+
+        print(f"{'Date':<10}  {'Completed':>9}")
+        print(f"{'-' * 10}  {'-' * 9}")
+        for item in result.days:
+            print(f"{item.date:<10}  {item.completed:>9}")
+
     def print_tray_started(self, result: TrayStartResult) -> None:
         """Print tray launch confirmation."""
         self._success(asdict(result), f"Tray started (pid {result.pid}).")
@@ -198,7 +231,10 @@ class Output:
     def print_status(self, result: StatusActiveResult | StatusInactiveResult) -> None:
         """Print current timer status."""
         if isinstance(result, StatusInactiveResult):
-            self._success({"active": False}, "No active interval.")
+            self._success(
+                {"active": False, "today_completed": result.today_completed},
+                f"No active interval. Today: {result.today_completed} completed.",
+            )
             return
 
         self._success(
@@ -206,5 +242,6 @@ class Output:
             f"Status:   {result.status}\n"
             f"Duration: {format_mmss(result.duration_sec)}\n"
             f"Worked:   {format_mmss(result.worked_sec)}\n"
-            f"Left:     {format_mmss(result.remaining_sec)}",
+            f"Left:     {format_mmss(result.remaining_sec)}\n"
+            f"Today:    {result.today_completed} completed",
         )

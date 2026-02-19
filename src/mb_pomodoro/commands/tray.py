@@ -21,22 +21,26 @@ from mb_pomodoro.app_context import use_context
 from mb_pomodoro.db import ACTIVE_STATUSES, IntervalRow, IntervalStatus
 from mb_pomodoro.output import TrayStartResult, TrayStopResult
 from mb_pomodoro.process import is_alive, read_pid, spawn_tray, write_pid_file
-from mb_pomodoro.time_fmt import format_mmss
+from mb_pomodoro.time_utils import format_mmss
 
 _POLL_INTERVAL_SEC = 2.0
 _STOP_TIMEOUT_SEC = 2.0
 _LAUNCH_VERIFY_SEC = 0.5
 
 
-def _format_title(row: IntervalRow | None) -> str:
-    """Build the menu bar title string from the latest interval."""
+def _format_title(row: IntervalRow | None, today_completed: int) -> str:
+    """Build the menu bar title string from the latest interval and today's count."""
     if row is None or row.status not in ACTIVE_STATUSES:
-        return "\u25c7"
-    if row.status == IntervalStatus.FINISHED:
-        return "\u2713"
-    if row.status in {IntervalStatus.PAUSED, IntervalStatus.INTERRUPTED}:
-        return "\u23f8"
-    return "\u25b6"
+        icon = "\u25c7"
+    elif row.status == IntervalStatus.FINISHED:
+        icon = "\u2713"
+    elif row.status in {IntervalStatus.PAUSED, IntervalStatus.INTERRUPTED}:
+        icon = "\u23f8"
+    else:
+        icon = "\u25b6"
+    if today_completed > 0:
+        return f"{icon} {today_completed}"
+    return icon
 
 
 class _TrayDelegate(NSObject):  # type: ignore[misc]
@@ -49,8 +53,9 @@ class _TrayDelegate(NSObject):  # type: ignore[misc]
     duration_item: Any
     worked_item: Any
     left_item: Any
+    today_completed_item: Any
 
-    def initWithConn_statusItem_statusMenuItem_durationItem_workedItem_leftItem_(  # noqa: N802
+    def initWithConn_statusItem_statusMenuItem_durationItem_workedItem_leftItem_todayCompletedItem_(  # noqa: N802
         self,
         conn: sqlite3.Connection,
         status_item: object,
@@ -58,6 +63,7 @@ class _TrayDelegate(NSObject):  # type: ignore[misc]
         duration_item: object,
         worked_item: object,
         left_item: object,
+        today_completed_item: object,
     ) -> Self:
         """Initialize delegate with DB connection, status item, and menu items."""
         self = objc.super(_TrayDelegate, self).init()  # noqa: PLW0642
@@ -67,14 +73,23 @@ class _TrayDelegate(NSObject):  # type: ignore[misc]
         self.duration_item = duration_item
         self.worked_item = worked_item
         self.left_item = left_item
+        self.today_completed_item = today_completed_item
         return self
 
     def refresh_(self, _timer: object) -> None:
         """Timer callback: poll DB and update menu bar title and detail items."""
         row = db.fetch_latest_interval(self.conn)
         now = int(time.time())
+        today_completed = db.count_today_completed(self.conn, now)
 
-        self.status_item.setTitle_(_format_title(row))
+        self.status_item.setTitle_(_format_title(row, today_completed))
+
+        # Today's completed count
+        if today_completed > 0:
+            self.today_completed_item.setTitle_(f"Today: {today_completed} completed")
+            self.today_completed_item.setHidden_(False)
+        else:
+            self.today_completed_item.setHidden_(True)
 
         # Update dropdown menu items
         if row is not None and row.status in ACTIVE_STATUSES:
@@ -129,13 +144,18 @@ def _run_tray(conn: sqlite3.Connection) -> None:
     left_item.setHidden_(True)
     menu.addItem_(left_item)
 
+    today_completed_item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_("Today: 0 completed", None, "")
+    today_completed_item.setEnabled_(False)
+    today_completed_item.setHidden_(True)
+    menu.addItem_(today_completed_item)
+
     menu.addItem_(NSMenuItem.separatorItem())
 
     quit_item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_("Quit", "quit:", "")
 
     # Delegate
-    delegate = _TrayDelegate.alloc().initWithConn_statusItem_statusMenuItem_durationItem_workedItem_leftItem_(
-        conn, status_item, status_menu_item, duration_item, worked_item, left_item
+    delegate = _TrayDelegate.alloc().initWithConn_statusItem_statusMenuItem_durationItem_workedItem_leftItem_todayCompletedItem_(
+        conn, status_item, status_menu_item, duration_item, worked_item, left_item, today_completed_item
     )
 
     quit_item.setTarget_(delegate)

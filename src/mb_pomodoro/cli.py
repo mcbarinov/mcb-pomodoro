@@ -37,7 +37,9 @@ def _version_callback(value: bool) -> None:
 def main(
     ctx: typer.Context,
     *,
-    version: Annotated[bool | None, typer.Option("--version", callback=_version_callback, is_eager=True)] = None,
+    version: Annotated[
+        bool | None, typer.Option("--version", callback=_version_callback, is_eager=True, help="Show version and exit.")
+    ] = None,
     json_output: Annotated[bool, typer.Option("--json", help="Output results as JSON.")] = False,
     data_dir: Annotated[
         Path | None,

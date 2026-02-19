@@ -7,6 +7,8 @@ from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
 
+from mb_pomodoro.time_utils import start_of_day
+
 logger = logging.getLogger(__name__)
 
 # --- Migrations ---
@@ -157,6 +159,17 @@ def fetch_history(conn: sqlite3.Connection, limit: int) -> list[IntervalRow]:
     return [_to_interval_row(row) for row in rows]
 
 
+def fetch_daily_completed(conn: sqlite3.Connection, limit: int) -> list[tuple[str, int]]:
+    """Return daily completed counts (date, count) ordered by date DESC, days with >0 only."""
+    rows = conn.execute(
+        "SELECT date(started_at, 'unixepoch', 'localtime') AS day, COUNT(*) AS cnt"
+        " FROM intervals WHERE status = 'completed'"
+        " GROUP BY day ORDER BY day DESC LIMIT ?",
+        (limit,),
+    ).fetchall()
+    return [(row[0], row[1]) for row in rows]
+
+
 # --- Mutations ---
 
 
@@ -281,6 +294,16 @@ def recover_running_interval(conn: sqlite3.Connection, interval_id: str, now: in
     _insert_event(conn, interval_id, EventType.INTERRUPTED, now)
     conn.commit()
     return True
+
+
+def count_today_completed(conn: sqlite3.Connection, now: int) -> int:
+    """Count intervals completed today (local midnight to now)."""
+    today_start = start_of_day(now)
+    row = conn.execute(
+        "SELECT COUNT(*) FROM intervals WHERE started_at >= ? AND status = 'completed'",
+        (today_start,),
+    ).fetchone()
+    return int(row[0])
 
 
 def get_connection(db_path: Path) -> sqlite3.Connection:

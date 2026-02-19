@@ -14,13 +14,14 @@ def status(ctx: typer.Context) -> None:
     """Show current Pomodoro timer status."""
     app = use_context(ctx)
 
+    now = int(time.time())
     row = db.fetch_latest_interval(app.conn)
+    today_completed = db.count_today_completed(app.conn, now)
 
     if row is None or row.status not in ACTIVE_STATUSES:
-        app.out.print_status(StatusInactiveResult())
+        app.out.print_status(StatusInactiveResult(today_completed=today_completed))
         return
 
-    now = int(time.time())
     effective_worked = row.effective_worked(now)
     remaining = max(0, row.duration_sec - effective_worked)
 
@@ -32,5 +33,6 @@ def status(ctx: typer.Context) -> None:
             worked_sec=effective_worked,
             remaining_sec=remaining,
             started_at=row.started_at,
+            today_completed=today_completed,
         )
     )

@@ -1,4 +1,4 @@
-"""Time parsing and formatting utilities."""
+"""Time parsing, formatting, and calendar utilities."""
 
 import re
 from datetime import UTC, datetime
@@ -33,3 +33,9 @@ def format_datetime(unix_ts: int) -> str:
     """Format unix timestamp as 'YYYY-MM-DD HH:MM' in local time."""
     dt = datetime.fromtimestamp(unix_ts, tz=UTC).astimezone()
     return dt.strftime("%Y-%m-%d %H:%M")
+
+
+def start_of_day(unix_ts: int) -> int:
+    """Return unix timestamp of local midnight for the day containing unix_ts."""
+    dt = datetime.fromtimestamp(unix_ts, tz=UTC).astimezone()
+    return int(dt.replace(hour=0, minute=0, second=0, microsecond=0).timestamp())

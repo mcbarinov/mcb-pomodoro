@@ -4,7 +4,7 @@ import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 
-from mb_pomodoro.time_fmt import parse_duration
+from mb_pomodoro.time_utils import parse_duration
 
 DEFAULT_DATA_DIR = Path.home() / ".local" / "mb-pomodoro"
 _DEFAULT_DURATION = "25"
