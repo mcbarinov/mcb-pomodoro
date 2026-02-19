@@ -1,48 +1,66 @@
 """Centralized application configuration."""
 
 import tomllib
-from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
+
+from pydantic import BaseModel, ConfigDict, Field, computed_field
 
 from mb_pomodoro.time_utils import parse_duration
 
-DEFAULT_DATA_DIR = Path.home() / ".local" / "mb-pomodoro"
-_DEFAULT_DURATION = "25"
 
-
-@dataclass(frozen=True, slots=True)
-class Config:
+class Config(BaseModel):
     """Application-wide configuration."""
 
-    data_dir: Path
-    db_path: Path
-    timer_worker_pid_path: Path
-    tray_pid_path: Path
-    log_path: Path
-    config_path: Path
-    default_duration: str
+    model_config = ConfigDict(frozen=True)
 
+    data_dir: Path = Field(description="Base directory for all application data")
+    default_duration: str = Field(default="25", description="Default timer duration (e.g. '25', '25m', '90s', '10m30s')")
 
-def build_config(data_dir: Path) -> Config:
-    """Build a Config instance from defaults and optional config.toml."""
-    config_path = data_dir / "config.toml"
-    default_duration = _DEFAULT_DURATION
+    @computed_field(description="SQLite database file")
+    @property
+    def db_path(self) -> Path:
+        """SQLite database file."""
+        return self.data_dir / "pomodoro.db"
 
-    if config_path.is_file():
-        with config_path.open("rb") as f:
-            toml_data = tomllib.load(f)
-        timer = toml_data.get("timer", {})
-        if isinstance(timer, dict):
-            val = timer.get("default_duration")
-            if isinstance(val, str) and parse_duration(val) is not None:
-                default_duration = val
+    @computed_field(description="Timer worker PID file")
+    @property
+    def timer_worker_pid_path(self) -> Path:
+        """Timer worker PID file."""
+        return self.data_dir / "timer_worker.pid"
 
-    return Config(
-        data_dir=data_dir,
-        db_path=data_dir / "pomodoro.db",
-        timer_worker_pid_path=data_dir / "timer_worker.pid",
-        tray_pid_path=data_dir / "tray.pid",
-        log_path=data_dir / "pomodoro.log",
-        config_path=config_path,
-        default_duration=default_duration,
-    )
+    @computed_field(description="Menu bar tray PID file")
+    @property
+    def tray_pid_path(self) -> Path:
+        """Menu bar tray PID file."""
+        return self.data_dir / "tray.pid"
+
+    @computed_field(description="Rotating log file")
+    @property
+    def log_path(self) -> Path:
+        """Rotating log file."""
+        return self.data_dir / "pomodoro.log"
+
+    @computed_field(description="Optional TOML configuration file")
+    @property
+    def config_path(self) -> Path:
+        """Optional TOML configuration file."""
+        return self.data_dir / "config.toml"
+
+    @staticmethod
+    def build(data_dir: Path | None = None) -> Config:
+        """Build a Config instance from defaults and optional config.toml."""
+        resolved_dir = data_dir if data_dir is not None else Path.home() / ".local" / "mb-pomodoro"
+        config_path = resolved_dir / "config.toml"
+
+        kwargs: dict[str, Any] = {"data_dir": resolved_dir}
+        if config_path.is_file():
+            with config_path.open("rb") as f:
+                toml_data = tomllib.load(f)
+            timer = toml_data.get("timer", {})
+            if isinstance(timer, dict):
+                val = timer.get("default_duration")
+                if isinstance(val, str) and parse_duration(val) is not None:
+                    kwargs["default_duration"] = val
+
+        return Config(**kwargs)

@@ -57,8 +57,8 @@ def write_pid_file(pid_path: Path) -> None:
 def spawn_timer_worker(interval_id: str, data_dir: Path) -> None:
     """Launch the timer worker as a detached background process."""
     # S603/S607: args are controlled literals, "mb-pomodoro" is our own CLI entry point
-    subprocess.Popen(  # noqa: S603, S607  # nosec B603, B607
-        ["mb-pomodoro", "--data-dir", str(data_dir), "worker", interval_id],
+    subprocess.Popen(  # noqa: S603  # nosec B603, B607
+        ["mb-pomodoro", "--data-dir", str(data_dir), "worker", interval_id],  # noqa: S607
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
         stdin=subprocess.DEVNULL,
@@ -69,8 +69,8 @@ def spawn_timer_worker(interval_id: str, data_dir: Path) -> None:
 def spawn_tray(data_dir: Path) -> int:
     """Launch the tray process in background and return its PID."""
     # S603/S607: args are controlled literals, "mb-pomodoro" is our own CLI entry point
-    proc = subprocess.Popen(  # noqa: S603, S607  # nosec B603, B607
-        ["mb-pomodoro", "--data-dir", str(data_dir), "tray", "--run"],
+    proc = subprocess.Popen(  # noqa: S603  # nosec B603, B607
+        ["mb-pomodoro", "--data-dir", str(data_dir), "tray", "--run"],  # noqa: S607
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
         stdin=subprocess.DEVNULL,

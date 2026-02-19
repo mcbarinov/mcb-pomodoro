@@ -6,7 +6,7 @@ readme = "README.md"
 license = "MIT"
 authors = [{ name = "mcbarinov" }]
 requires-python = ">=3.14"
-dependencies = ["typer~=0.24.0", "pyobjc-framework-Cocoa~=12.1"]
+dependencies = ["typer~=0.24.0", "pyobjc-framework-Cocoa~=12.1", "pydantic~=2.12.5"]
 [project.scripts]
 mb-pomodoro = "mb_pomodoro.cli:app"
 
@@ -28,6 +28,8 @@ dev = [
 python_version = "3.14"
 strict = true
 exclude = ["^tests/", "^tmp/"]
+plugins = ["pydantic.mypy"]
+disable_error_code = ["prop-decorator"]  # pydantic @computed_field + @property pattern
 
 [[tool.mypy.overrides]]
 module = ["AppKit", "Foundation", "PyObjCTools.*", "objc"]

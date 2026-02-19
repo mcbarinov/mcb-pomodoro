@@ -17,7 +17,7 @@ from mb_pomodoro.commands.start import start
 from mb_pomodoro.commands.status import status
 from mb_pomodoro.commands.tray import tray
 from mb_pomodoro.commands.worker import worker
-from mb_pomodoro.config import DEFAULT_DATA_DIR, build_config
+from mb_pomodoro.config import Config
 from mb_pomodoro.db import get_connection
 from mb_pomodoro.log import setup_logging
 from mb_pomodoro.output import Output
@@ -49,12 +49,12 @@ def main(
     """Pomodoro timer for macOS."""
     _ = version
     if data_dir is not None:
-        resolved_dir = data_dir
+        resolved_dir: Path | None = data_dir.resolve()
     elif env_dir := os.environ.get("MB_POMODORO_DATA_DIR"):
-        resolved_dir = Path(env_dir)
+        resolved_dir = Path(env_dir).resolve()
     else:
-        resolved_dir = DEFAULT_DATA_DIR
-    cfg = build_config(resolved_dir.resolve())
+        resolved_dir = None
+    cfg = Config.build(resolved_dir)
     cfg.data_dir.mkdir(parents=True, exist_ok=True)
     setup_logging(cfg.log_path)
     conn = get_connection(cfg.db_path)
