@@ -237,7 +237,7 @@ wheels = [
 
 [[package]]
 name = "mb-pomodoro"
-version = "0.0.5"
+version = "0.0.1"
 source = { editable = "." }
 dependencies = [
     { name = "mm-pymac" },

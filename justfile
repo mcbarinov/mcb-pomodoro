@@ -1,13 +1,11 @@
 set dotenv-load
+version := `uv run python -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])'`
 
 clean:
     rm -rf .pytest_cache .mypy_cache .ruff_cache .coverage dist build src/*.egg-info
 
 build: clean lint audit test
     uv build
-
-install:
-    uv tool install . --force --reinstall
 
 format:
     uv run ruff check --select I --fix src tests
@@ -28,3 +26,9 @@ audit:
 
 sync:
     uv sync
+
+publish: build
+    git diff-index --quiet HEAD
+    printf "Enter PyPI token: " && IFS= read -rs TOKEN && echo && uv publish --token "$TOKEN"
+    git tag -a 'v{{version}}' -m 'v{{version}}'
+    git push origin v{{version}}
