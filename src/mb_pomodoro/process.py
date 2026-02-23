@@ -6,6 +6,8 @@ import subprocess  # nosec B404
 import tempfile
 from pathlib import Path
 
+from mb_pomodoro.config import DEFAULT_DATA_DIR
+
 
 def read_pid(pid_path: Path) -> int | None:
     """Read PID from file, returning None if missing or invalid."""
@@ -54,11 +56,19 @@ def write_pid_file(pid_path: Path) -> None:
         raise
 
 
+def build_cli_args(data_dir: Path) -> list[str]:
+    """Build CLI base args, including --data-dir only when non-default."""
+    args: list[str] = ["mb-pomodoro"]
+    if data_dir != DEFAULT_DATA_DIR:
+        args.extend(["--data-dir", str(data_dir)])
+    return args
+
+
 def spawn_timer_worker(interval_id: str, data_dir: Path) -> None:
     """Launch the timer worker as a detached background process."""
     # S603/S607: args are controlled literals, "mb-pomodoro" is our own CLI entry point
     subprocess.Popen(  # noqa: S603  # nosec B603, B607
-        ["mb-pomodoro", "--data-dir", str(data_dir), "worker", interval_id],  # noqa: S607
+        [*build_cli_args(data_dir), "worker", interval_id],
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
         stdin=subprocess.DEVNULL,
@@ -70,7 +80,7 @@ def spawn_tray(data_dir: Path) -> int:
     """Launch the tray process in background and return its PID."""
     # S603/S607: args are controlled literals, "mb-pomodoro" is our own CLI entry point
     proc = subprocess.Popen(  # noqa: S603  # nosec B603, B607
-        ["mb-pomodoro", "--data-dir", str(data_dir), "tray", "--run"],  # noqa: S607
+        [*build_cli_args(data_dir), "tray", "--run"],
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
         stdin=subprocess.DEVNULL,

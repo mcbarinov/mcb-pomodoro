@@ -15,7 +15,7 @@ from mb_pomodoro.app_context import use_context
 from mb_pomodoro.config import Config
 from mb_pomodoro.db import ACTIVE_STATUSES, Db, IntervalRow, IntervalStatus
 from mb_pomodoro.output import TrayStartResult, TrayStopResult
-from mb_pomodoro.process import is_alive, read_pid, spawn_tray, write_pid_file
+from mb_pomodoro.process import build_cli_args, is_alive, read_pid, spawn_tray, write_pid_file
 from mb_pomodoro.time_utils import format_mmss, parse_duration
 
 _POLL_INTERVAL_SEC = 2.0
@@ -138,9 +138,9 @@ class _TrayController:
             item.enabled = False
 
         def task() -> None:
-            # S603/S607: args are controlled literals, "mb-pomodoro" is our own CLI entry point
+            # S603: args are controlled literals, "mb-pomodoro" is our own CLI entry point
             subprocess.run(  # noqa: S603  # nosec B603, B607
-                ["mb-pomodoro", "--data-dir", str(self._cfg.data_dir), "--json", command],  # noqa: S607
+                [*build_cli_args(self._cfg.data_dir), "--json", command],
                 capture_output=True,
                 check=False,
             )

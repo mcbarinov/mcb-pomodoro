@@ -8,6 +8,8 @@ from pydantic import BaseModel, ConfigDict, Field, computed_field
 
 from mb_pomodoro.time_utils import parse_duration
 
+DEFAULT_DATA_DIR = Path.home() / ".local" / "mb-pomodoro"
+
 
 class Config(BaseModel):
     """Application-wide configuration."""
@@ -50,7 +52,7 @@ class Config(BaseModel):
     @staticmethod
     def build(data_dir: Path | None = None) -> Config:
         """Build a Config instance from defaults and optional config.toml."""
-        resolved_dir = data_dir if data_dir is not None else Path.home() / ".local" / "mb-pomodoro"
+        resolved_dir = data_dir if data_dir is not None else DEFAULT_DATA_DIR
         config_path = resolved_dir / "config.toml"
 
         kwargs: dict[str, Any] = {"data_dir": resolved_dir}
