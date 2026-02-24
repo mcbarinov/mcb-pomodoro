@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Annotated
 
 import typer
+from mm_clikit import TyperPlus
 
 from mb_pomodoro.app_context import AppContext
 from mb_pomodoro.commands.cancel import cancel
@@ -23,23 +24,13 @@ from mb_pomodoro.log import setup_logging
 from mb_pomodoro.output import Output
 from mb_pomodoro.recovery import recover_stale_interval
 
-app = typer.Typer(add_completion=False, no_args_is_help=True)
-
-
-def _version_callback(value: bool) -> None:
-    """Print version and exit."""
-    if value:
-        typer.echo(version("mb-pomodoro"))
-        raise typer.Exit
+app = TyperPlus(package_name="mb-pomodoro")
 
 
 @app.callback()
 def main(
     ctx: typer.Context,
     *,
-    version: Annotated[
-        bool | None, typer.Option("--version", callback=_version_callback, is_eager=True, help="Show version and exit.")
-    ] = None,
     json_output: Annotated[bool, typer.Option("--json", help="Output results as JSON.")] = False,
     data_dir: Annotated[
         Path | None,
@@ -65,11 +56,11 @@ def main(
 
 
 app.command()(start)
-app.command()(pause)
-app.command()(resume)
+app.command(aliases=["p"])(pause)
+app.command(aliases=["r"])(resume)
 app.command()(cancel)
 app.command()(finish)
-app.command()(history)
-app.command()(status)
+app.command(aliases=["h"])(history)
+app.command(aliases=["s"])(status)
 app.command()(tray)
 app.command()(worker)
