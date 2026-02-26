@@ -49,6 +49,13 @@ class Config(BaseModel):
         """Optional TOML configuration file."""
         return self.data_dir / "config.toml"
 
+    def cli_base_args(self) -> list[str]:
+        """Build CLI base args, including --data-dir only when non-default."""
+        args: list[str] = ["mb-pomodoro"]
+        if self.data_dir != DEFAULT_DATA_DIR:
+            args.extend(["--data-dir", str(self.data_dir)])
+        return args
+
     @staticmethod
     def build(data_dir: Path | None = None) -> Config:
         """Build a Config instance from defaults and optional config.toml."""

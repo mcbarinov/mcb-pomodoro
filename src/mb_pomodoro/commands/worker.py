@@ -6,11 +6,11 @@ import time
 from typing import Annotated
 
 import typer
+from mm_clikit import write_pid_file
 
 from mb_pomodoro.app_context import use_context
 from mb_pomodoro.db import IntervalStatus
 from mb_pomodoro.notification import send_notification
-from mb_pomodoro.process import write_pid_file
 
 logger = logging.getLogger(__name__)
 

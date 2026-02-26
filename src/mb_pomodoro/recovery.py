@@ -4,8 +4,9 @@ import logging
 import time
 from pathlib import Path
 
+from mm_clikit import is_process_running
+
 from mb_pomodoro.db import Db, IntervalStatus
-from mb_pomodoro.process import is_alive
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +22,7 @@ def recover_stale_interval(db: Db, timer_worker_pid_path: Path) -> None:
     if row is None or row.status != IntervalStatus.RUNNING:
         return
 
-    if is_alive(timer_worker_pid_path):
+    if is_process_running(timer_worker_pid_path, command_contains="mb-pomodoro"):
         return
 
     # Worker may still be starting — skip recovery for fresh intervals without a heartbeat
