@@ -13,7 +13,7 @@ from mb_pomodoro.app_context import use_context
 from mb_pomodoro.config import Config
 from mb_pomodoro.db import ACTIVE_STATUSES, Db, IntervalRow, IntervalStatus
 from mb_pomodoro.output import TrayStartResult, TrayStopResult
-from mb_pomodoro.pomodoro import Pomodoro
+from mb_pomodoro.pomodoro import Pomodoro, PomodoroError
 from mb_pomodoro.time_utils import format_mmss, parse_duration
 
 _POLL_INTERVAL_SEC = 2.0
@@ -157,7 +157,7 @@ def _stop_tray(ctx: typer.Context) -> None:
     pid = read_pid_file(pid_path)
     if pid is None or not is_process_running(pid_path, command_contains="mb-pomodoro"):
         pid_path.unlink(missing_ok=True)
-        app.out.print_error_and_exit("TRAY_NOT_RUNNING", "Tray is not running.")
+        raise PomodoroError("TRAY_NOT_RUNNING", "Tray is not running.")
 
     stop_process(pid, timeout=_STOP_TIMEOUT_SEC)
     pid_path.unlink(missing_ok=True)
@@ -171,7 +171,7 @@ def _run_foreground(ctx: typer.Context) -> None:
     tray_pid_path = cfg.tray_pid_path
 
     if is_process_running(tray_pid_path, command_contains="mb-pomodoro"):
-        app.out.print_error_and_exit("TRAY_ALREADY_RUNNING", "Tray is already running.")
+        raise PomodoroError("TRAY_ALREADY_RUNNING", "Tray is already running.")
 
     # Separate DB connection — the tray outlives the CLI context lifecycle
     tray_db = Db(cfg.db_path)
@@ -191,14 +191,14 @@ def _launch_background(ctx: typer.Context) -> None:
 
     if is_process_running(cfg.tray_pid_path, command_contains="mb-pomodoro"):
         pid = read_pid_file(cfg.tray_pid_path)
-        app.out.print_error_and_exit("TRAY_ALREADY_RUNNING", f"Tray is already running (pid {pid}).")
+        raise PomodoroError("TRAY_ALREADY_RUNNING", f"Tray is already running (pid {pid}).")
 
     pid = spawn_daemon([*cfg.cli_base_args(), "tray", "--run"])
 
     # Brief wait to verify the process is alive
     time.sleep(_LAUNCH_VERIFY_SEC)
     if not is_process_running(cfg.tray_pid_path, command_contains="mb-pomodoro"):
-        app.out.print_error_and_exit("TRAY_LAUNCH_FAILED", "Tray process failed to start.")
+        raise PomodoroError("TRAY_LAUNCH_FAILED", "Tray process failed to start.")
 
     app.out.print_tray_started(TrayStartResult(pid=pid))
 

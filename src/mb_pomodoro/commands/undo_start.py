@@ -21,10 +21,10 @@ def undo_start(
     if not yes:
         row = app.pomodoro.get_active_interval()
         if row is None:
-            app.out.print_error_and_exit("NOT_RUNNING", "No running interval to undo.")
+            raise PomodoroError("NOT_RUNNING", "No running interval to undo.")
 
         if app.out.json_mode:
-            app.out.print_error_and_exit("CONFIRMATION_REQUIRED", "Use --yes flag to confirm deletion in JSON mode.")
+            raise PomodoroError("CONFIRMATION_REQUIRED", "Use --yes flag to confirm deletion in JSON mode.")
 
         now = int(time.time())
         elapsed = now - row.started_at
@@ -35,11 +35,7 @@ def undo_start(
         )
         answer = input("Type 'yes' to permanently delete this interval: ")
         if answer != "yes":
-            app.out.print_error_and_exit("NOT_CONFIRMED", "Aborted: interval was not deleted.")
+            raise PomodoroError("NOT_CONFIRMED", "Aborted: interval was not deleted.")
 
-    try:
-        result = app.pomodoro.undo_start()
-    except PomodoroError as e:
-        app.out.print_error_and_exit(e.code, str(e))
-
+    result = app.pomodoro.undo_start()
     app.out.print_undo_start(result)

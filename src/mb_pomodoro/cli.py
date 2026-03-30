@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Annotated
 
 import typer
-from mm_clikit import TyperPlus
+from mm_clikit import TyperPlus, get_json_mode
 
 from mb_pomodoro.app_context import AppContext
 from mb_pomodoro.commands.cancel import cancel
@@ -32,7 +32,6 @@ app = TyperPlus(package_name="mb-pomodoro")
 def main(
     ctx: typer.Context,
     *,
-    json_output: Annotated[bool, typer.Option("--json", help="Output results as JSON.")] = False,
     data_dir: Annotated[
         Path | None,
         typer.Option("--data-dir", help="Application data directory (db, pid, log). Allows running multiple instances."),
@@ -54,7 +53,7 @@ def main(
     pomodoro = Pomodoro(db, cfg)
     if ctx.invoked_subcommand not in {"worker", "tray"}:
         pomodoro.recover_stale()
-    ctx.obj = AppContext(out=Output(json_mode=json_output), pomodoro=pomodoro, cfg=cfg)
+    ctx.obj = AppContext(out=Output(json_mode=get_json_mode()), pomodoro=pomodoro, cfg=cfg)
 
 
 app.command()(start)

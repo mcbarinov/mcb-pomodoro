@@ -237,7 +237,7 @@ wheels = [
 
 [[package]]
 name = "mb-pomodoro"
-version = "0.0.8"
+version = "0.0.9"
 source = { editable = "." }
 dependencies = [
     { name = "mm-clikit" },
@@ -256,7 +256,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "mm-clikit", specifier = "~=0.0.12" },
+    { name = "mm-clikit", specifier = "~=0.0.14" },
     { name = "mm-pymac", specifier = "~=0.0.3" },
 ]
 
@@ -281,7 +281,7 @@ wheels = [
 
 [[package]]
 name = "mm-clikit"
-version = "0.0.12"
+version = "0.0.14"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "mm-result" },
@@ -291,9 +291,9 @@ dependencies = [
     { name = "tomlkit" },
     { name = "typer" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/48/85/ec0dd5adffebf33ef6db52f46d3ff690dc7d11ccdeb8801ed1f6bdf184c6/mm_clikit-0.0.12.tar.gz", hash = "sha256:a6c70f01f9ab2bd661edac787ffdc67b1ca9799f04e444e73ce1c1736151eba7", size = 57210, upload-time = "2026-03-05T08:10:49.491Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/e7/65/6c2f4ad8d4e2373086775da524b5fb4dec784c56ef5c156976ba9a32c25f/mm_clikit-0.0.14.tar.gz", hash = "sha256:fbb0031e562f110edd17cd192e31f4a2b8d0e4cb9d9d20eafdf8efb8fa1238f8", size = 59537, upload-time = "2026-03-30T07:59:26.971Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/30/8a/e05cd8a2406637b65557ddf512770a9cfc7e84e16c9b46ae37feffc43dda/mm_clikit-0.0.12-py3-none-any.whl", hash = "sha256:d50414be8a8e3664495ea17e3314abc7c90fbfe4486ed9f5a0ee8b60104365e2", size = 11250, upload-time = "2026-03-05T08:10:50.582Z" },
+    { url = "https://files.pythonhosted.org/packages/74/62/ae734f23a0b6f64e1f43d4b520c9a05b0c005e4abb99769c0c0a76b25fd1/mm_clikit-0.0.14-py3-none-any.whl", hash = "sha256:364599b2d37c75307866891756ab5309dd2697491757e5f739d17660df07ee39", size = 14837, upload-time = "2026-03-30T07:59:25.594Z" },
 ]
 
 [[package]]

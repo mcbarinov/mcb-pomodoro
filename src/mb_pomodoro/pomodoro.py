@@ -3,7 +3,7 @@
 import logging
 import time
 
-from mm_clikit import is_process_running
+from mm_clikit import CliError, is_process_running
 
 from mb_pomodoro.config import Config
 from mb_pomodoro.db import ACTIVE_STATUSES, Db, IntervalRow, IntervalStatus
@@ -31,8 +31,11 @@ logger = logging.getLogger(__name__)
 _STARTUP_GRACE_SEC = 15
 
 
-class PomodoroError(Exception):
-    """Application-level error with machine-readable code."""
+class PomodoroError(CliError):
+    """Application-level error with machine-readable code.
+
+    Caught automatically by TyperPlus error handler — formats JSON/display and exits.
+    """
 
     def __init__(self, code: str, message: str) -> None:
         """Initialize with error code and human-readable message.
@@ -42,8 +45,7 @@ class PomodoroError(Exception):
             message: Human-readable error description.
 
         """
-        super().__init__(message)
-        self.code = code
+        super().__init__(message, error_code=code)
 
 
 class Pomodoro:
