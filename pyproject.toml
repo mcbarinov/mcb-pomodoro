@@ -1,6 +1,6 @@
 [project]
 name = "mb-pomodoro"
-version = "0.0.12"
+version = "0.1.0"
 description = "macOS Pomodoro timer with a CLI-first workflow"
 readme = "README.md"
 license = "MIT"
@@ -11,7 +11,7 @@ classifiers = [
     "Topic :: Utilities",
 ]
 requires-python = ">=3.14"
-dependencies = ["mm-clikit~=0.0.19", "mm-pymac~=0.0.3"]
+dependencies = ["mm-clikit~=0.1.1", "mm-pymac~=0.0.3"]
 [project.scripts]
 mb-pomodoro = "mb_pomodoro.cli:app"
 
@@ -28,9 +28,9 @@ exclude = [".claude/", "CLAUDE.md", "justfile", "uv.lock", "tests/", "raycast/"]
 
 [dependency-groups]
 dev = [
-    "pytest~=9.0.2",
+    "pytest~=9.0.3",
     "pytest-xdist~=3.8.0",
-    "ruff~=0.15.8",
+    "ruff~=0.15.9",
     "pip-audit~=2.10.0",
     "bandit~=1.9.4",
     "mypy~=1.20.0",
