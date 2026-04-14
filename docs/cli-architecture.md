@@ -1,4 +1,4 @@
-<!-- version: 2026-04-08 | source: https://github.com/mcbarinov/mm-clikit -->
+<!-- version: 2026-04-14 | source: https://github.com/mcbarinov/mm-clikit -->
 
 # CLI Application Architecture Guide
 
@@ -41,6 +41,15 @@ CLI adapter code lives in the `cli/` subfolder.
 Config is at the package root — shared by both core and CLI.
 Other adapters (`daemon.py`, `tray.py`) sit at the package root alongside `cli/` — they use `Core` directly.
 Core has zero imports from `cli/` or other adapters — the dependency is strictly one-way.
+
+## Two output styles
+
+This guide describes two output styles. Pick one per app:
+
+- **Style A — Plain output (no `--json`).** Commands call `print_plain` / `print_table` / `print_toml` / `print_json` from mm-clikit directly. No `cli/output.py`, no `Output` class. `ctx.obj` holds just `CoreContext[Core]`. Use this for small CLIs where JSON output isn't a requirement. Disable the auto-registered flag with `TyperPlus(json_option=False)`.
+- **Style B — Dual-mode output (with `--json`).** Every user-visible output goes through an `Output(DualModeOutput)` class in `cli/output.py`. Each method provides both `json_data` and `display_data`. `ctx.obj` holds `CoreContext[Core, Output]`. Use this when JSON output matters (scripting, machine-readable pipelines).
+
+The `core/` layer is identical in both styles. Only `cli/` differs. If in doubt, start with Style A — upgrading to Style B later means adding one file (`output.py`) and rewriting commands to call `app.out.*` instead of `print_*`.
 
 ## Data Classes Convention
 
@@ -277,20 +286,15 @@ from typing import Self
 from mm_clikit import SqliteDb, SqliteRow
 
 
-def _migrate_v1(conn: sqlite3.Connection) -> None:
-    """Create initial schema."""
-    conn.execute("""
-        CREATE TABLE items (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            created_at INTEGER NOT NULL DEFAULT (unixepoch())
-        ) STRICT
-    """)
+_MIGRATE_V1 = """
+CREATE TABLE items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    created_at INTEGER NOT NULL DEFAULT (unixepoch())
+) STRICT;
+"""
 
-
-def _migrate_v2(conn: sqlite3.Connection) -> None:
-    """Add tags column."""
-    conn.execute("ALTER TABLE items ADD COLUMN tags TEXT NOT NULL DEFAULT '[]'")
+_MIGRATE_V2 = "ALTER TABLE items ADD COLUMN tags TEXT NOT NULL DEFAULT '[]'"
 
 
 class ItemRow(SqliteRow):
@@ -309,7 +313,7 @@ class Db(SqliteDb):
     """SQLite database access."""
 
     def __init__(self, db_path: Path) -> None:
-        super().__init__(db_path, migrations=(_migrate_v1, _migrate_v2))
+        super().__init__(db_path, migrations=(_MIGRATE_V1, _MIGRATE_V2))
 
     def insert_item(self, name: str) -> int:
         """Insert an item and return its ID."""
@@ -324,9 +328,9 @@ class Db(SqliteDb):
 ```
 
 Migration rules:
-- Do **not** call `commit()` — `SqliteDb` commits each migration together with its `user_version` bump atomically.
-- Use `conn.execute()` for each statement, **not** `conn.executescript()` (which does implicit commits and breaks atomicity).
-- Add new migrations as `_migrate_v2`, `_migrate_v3`, etc. and append to the `migrations` tuple.
+- Each migration is either a plain SQL string (semicolon-separated statements) or a callable receiving `sqlite3.Connection`. SQL strings are preferred for DDL; callables are for programmatic logic (data transforms, conditional DDL).
+- `SqliteDb` commits each migration together with its `user_version` bump atomically. Callable migrations must **not** call `commit()` or use `conn.executescript()` (which does implicit commits).
+- Add new migrations as `_MIGRATE_V2`, `_MIGRATE_V3`, etc. and append to the `migrations` tuple.
 
 ---
 
@@ -341,6 +345,27 @@ Migration rules:
 Empty — the entry point in pyproject.toml points directly to `mb_<name>.cli.main:app`.
 
 ### cli/context.py
+
+Pre-typed wrapper over `mm_clikit.use_context`. Commands import only this function — one import
+instead of two. Separate file to avoid circular imports (main.py imports commands, commands import use_context).
+
+**Style A (no Output):**
+
+```python
+"""Typed CLI context."""
+
+import typer
+from mm_clikit import CoreContext, use_context as _use_context
+
+from mb_<name>.core.core import Core
+
+
+def use_context(ctx: typer.Context) -> CoreContext[Core]:
+    """Extract typed core context from Typer context."""
+    return _use_context(ctx, CoreContext[Core])
+```
+
+**Style B (with Output):**
 
 ```python
 """Typed CLI context."""
@@ -357,10 +382,7 @@ def use_context(ctx: typer.Context) -> CoreContext[Core, Output]:
     return _use_context(ctx, CoreContext[Core, Output])
 ```
 
-Pre-typed wrapper over `mm_clikit.use_context`. Commands import only this function — one import
-instead of two. Separate file to avoid circular imports (main.py imports commands, commands import use_context).
-
-### cli/output.py
+### cli/output.py (Style B only)
 
 ```python
 """Structured output for CLI and JSON modes."""
@@ -398,6 +420,8 @@ Every user-visible output goes through a dedicated `Output` method. Each method 
 
 ### cli/main.py
 
+**Style A (no Output):**
+
 ```python
 """CLI app definition and initialization."""
 
@@ -409,11 +433,10 @@ from mm_clikit import CoreContext, TyperPlus, setup_logging
 
 from mb_<name>.cli.commands.add import add
 from mb_<name>.cli.commands.list import list_
-from mb_<name>.cli.output import Output
 from mb_<name>.config import Config
 from mb_<name>.core.core import Core
 
-app = TyperPlus(package_name="mb-<name>")
+app = TyperPlus(package_name="mb-<name>", json_option=False)
 
 
 @app.callback()
@@ -427,15 +450,17 @@ def main(
 ) -> None:
     """Short app description."""
     config = Config.build(data_dir)
-    setup_logging("mb_<name>", config.log_path)
+    setup_logging("mb_<name>", file_path=config.log_path)
     core = Core(config)
     ctx.call_on_close(core.close)
-    ctx.obj = CoreContext(core=core, out=Output())
+    ctx.obj = CoreContext[Core](core=core, out=None)
 
 
 app.command(aliases=["a"])(add)
 app.command(name="list", aliases=["l", "ls"])(list_)
 ```
+
+**Style B (with Output):** same as above, but `json_option=False` is dropped, `Output` is imported from `mb_<name>.cli.output`, and the last line becomes `ctx.obj = CoreContext[Core, Output](core=core, out=Output())`. Parametrize the constructor explicitly so `app.out` is typed as `Output` rather than falling back on the `OutT = None` default.
 
 The callback handles all initialization: config, logging, core, context.
 Resources that need cleanup use `ctx.call_on_close()`.
@@ -448,12 +473,15 @@ TyperPlus provides automatically:
 
 ### cli/commands/add.py
 
+**Style A (no Output):**
+
 ```python
 """Add a new item."""
 
 from typing import Annotated
 
 import typer
+from mm_clikit import print_plain
 
 from mb_<name>.cli.context import use_context
 
@@ -465,17 +493,22 @@ def add(
     """Create a new item."""
     app = use_context(ctx)
     item_id = app.core.service.add_item(name)
-    app.out.print_item_added(item_id, name)
+    print_plain(f"Item #{item_id} created: {name}")
 ```
+
+**Style B (with Output):** the last two lines become `item_id = app.core.service.add_item(name)` followed by `app.out.print_item_added(item_id, name)`.
 
 Uses `core.service` because `add_item` has validation logic (non-empty name check).
 
 ### cli/commands/list.py
 
+**Style A (no Output):**
+
 ```python
 """List all items."""
 
 import typer
+from mm_clikit import print_plain, print_table
 
 from mb_<name>.cli.context import use_context
 
@@ -484,8 +517,16 @@ def list_(ctx: typer.Context) -> None:
     """Show all items."""
     app = use_context(ctx)
     items = app.core.db.fetch_all_items()
-    app.out.print_items(items)
+    if not items:
+        print_plain("No items.")
+        return
+    print_table(
+        columns=["ID", "Name"],
+        rows=[[str(item.id), item.name] for item in items],
+    )
 ```
+
+**Style B (with Output):** replace the `if`/`print_table` block with `app.out.print_items(items)`.
 
 Uses `core.db` directly — fetching all items is a simple read with no business logic.
 
@@ -563,11 +604,11 @@ The CLI is just one adapter over the core. Future adapters (web API, telegram bo
 3. **Data access:** Commands use `core.service` for business logic (validation, orchestration). Commands use `core.db` directly for simple reads. Don't create service methods that just forward to db.
 4. **Core class:** Composition root — creates and owns Db, Service, Config. Single `Core(config)` constructor, `close()` for cleanup.
 5. **Errors:** `CliError(message, code)` from mm-clikit. Raise from service. TyperPlus catches automatically.
-6. **Output:** All user output via `Output(DualModeOutput)` in `cli/output.py`. One method per operation, both `json_data` and `display_data`.
+6. **Output:** Style B — all user output via `Output(DualModeOutput)` in `cli/output.py`, one method per operation with both `json_data` and `display_data`. Style A — commands call `print_plain` / `print_table` / `print_toml` / `print_json` from mm-clikit directly, no `Output` class.
 7. **Config:** Frozen Pydantic. Resolution: `--data-dir` → env var → default. Optional TOML overlay.
-8. **Context:** Pre-typed `use_context()` in `cli/context.py`. Returns `CoreContext[Core, Output]`. Commands call `use_context(ctx)` — one import, fully typed.
-9. **JSON mode:** Via TyperPlus `--json` flag. `DualModeOutput` reads it automatically. Never add a manual `--json` parameter.
-10. **Logging:** `setup_logging(logger_name, log_path)` from mm-clikit, called in the callback.
+8. **Context:** Pre-typed `use_context()` in `cli/context.py`. Style A returns `CoreContext[Core]`; Style B returns `CoreContext[Core, Output]`. Commands call `use_context(ctx)` — one import, fully typed.
+9. **JSON mode:** Requires Style B (`DualModeOutput`). Enabled via TyperPlus `--json` flag, which `DualModeOutput` reads automatically — never add a manual `--json` parameter. Style A apps must disable the flag with `TyperPlus(json_option=False)`.
+10. **Logging:** `setup_logging(logger_name, file_path=...)` from mm-clikit, called in the callback. `file_path` is optional (console-only by default); pass it to enable the rotating log file.
 11. **Entry point:** `mb_<name>.cli.main:app` in pyproject.toml.
 12. **Row models:** Subclass `SqliteRow` for typed database rows with `from_row()` conversion.
 13. **`__init__.py`:** Keep empty in application packages — just a module docstring. No re-exports.

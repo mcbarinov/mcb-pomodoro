@@ -35,7 +35,7 @@ def main(
 ) -> None:
     """Pomodoro timer for macOS."""
     config = Config.build(data_dir)
-    setup_logging("mb_pomodoro", config.log_path)
+    setup_logging("mb_pomodoro", file_path=config.log_path)
     core = Core(config)
     ctx.call_on_close(core.close)
     if ctx.invoked_subcommand not in {"worker", "tray"}:

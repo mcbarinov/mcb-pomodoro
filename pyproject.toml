@@ -11,7 +11,7 @@ classifiers = [
     "Topic :: Utilities",
 ]
 requires-python = ">=3.14"
-dependencies = ["mm-clikit~=0.1.1", "mm-pymac~=0.0.3"]
+dependencies = ["mm-clikit~=0.1.7", "mm-pymac~=0.0.3"]
 [project.scripts]
 mb-pomodoro = "mb_pomodoro.cli:app"
 
@@ -30,10 +30,10 @@ exclude = [".claude/", "CLAUDE.md", "justfile", "uv.lock", "tests/", "raycast/"]
 dev = [
     "pytest~=9.0.3",
     "pytest-xdist~=3.8.0",
-    "ruff~=0.15.9",
+    "ruff~=0.15.10",
     "pip-audit~=2.10.0",
     "bandit~=1.9.4",
-    "mypy~=1.20.0",
+    "mypy~=1.20.1",
 ]
 
 [tool.mypy]
