@@ -12,7 +12,7 @@ from mb_pomodoro.time_utils import format_datetime, format_mmss
 
 def delete(
     ctx: typer.Context,
-    interval_id: Annotated[int | None, typer.Argument(help="Interval ID to delete. Defaults to latest.")] = None,
+    interval_id: Annotated[int, typer.Argument(help="Interval ID to delete.")],
     *,
     yes: Annotated[bool, typer.Option("--yes", "-y", help="Skip confirmation prompt.")] = False,
 ) -> None:
@@ -20,15 +20,9 @@ def delete(
     app = use_context(ctx)
 
     if not yes:
-        # Pre-fetch for confirmation display
-        if interval_id is not None:
-            row = app.core.db.fetch_interval(interval_id)
-            if row is None:
-                raise CliError(f"No interval with id {interval_id}.", "INTERVAL_NOT_FOUND")
-        else:
-            row = app.core.db.fetch_latest_interval()
-            if row is None:
-                raise CliError("No intervals found.", "INTERVAL_NOT_FOUND")
+        row = app.core.db.fetch_interval(interval_id)
+        if row is None:
+            raise CliError(f"No interval with id {interval_id}.", "INTERVAL_NOT_FOUND")
 
         if app.out.json_mode:
             raise CliError("Use --yes flag to confirm deletion in JSON mode.", "CONFIRMATION_REQUIRED")

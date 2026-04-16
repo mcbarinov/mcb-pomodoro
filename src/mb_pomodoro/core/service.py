@@ -189,11 +189,11 @@ class Service:
         logger.info("Interval resolved id=%s resolution=%s", row.id, resolved_status)
         return FinishResult(interval_id=row.id, resolution=resolved_status, worked_sec=row.worked_sec)
 
-    def delete_interval(self, interval_id: int | None = None) -> DeleteResult:
+    def delete_interval(self, interval_id: int) -> DeleteResult:
         """Permanently delete an interval.
 
         Args:
-            interval_id: Interval ID to delete. If None, deletes the latest interval.
+            interval_id: Interval ID to delete.
 
         Returns:
             Delete result with deleted interval metadata.
@@ -202,14 +202,9 @@ class Service:
             CliError: If interval not found.
 
         """
-        if interval_id is not None:
-            row = self._db.fetch_interval(interval_id)
-            if row is None:
-                raise CliError(f"No interval with id {interval_id}.", "INTERVAL_NOT_FOUND")
-        else:
-            row = self._db.fetch_latest_interval()
-            if row is None:
-                raise CliError("No intervals found.", "INTERVAL_NOT_FOUND")
+        row = self._db.fetch_interval(interval_id)
+        if row is None:
+            raise CliError(f"No interval with id {interval_id}.", "INTERVAL_NOT_FOUND")
 
         now = int(time.time())
         worked = row.effective_worked(now)
@@ -292,6 +287,21 @@ class Service:
             new_resolution=new_status,
             worked_sec=row.worked_sec,
         )
+
+    def get_running_interval(self) -> IntervalRow:
+        """Return the currently running interval.
+
+        Raises:
+            CliError: If no running interval exists.
+
+        """
+        row = self._db.fetch_latest_interval()
+        if row is None or row.status != IntervalStatus.RUNNING:
+            msg = "No running interval."
+            if row is not None:
+                msg = f"{msg} Latest interval: id={row.id}, status={row.status}."
+            raise CliError(msg, "NOT_RUNNING")
+        return row
 
     def get_active_interval(self) -> IntervalRow | None:
         """Return the latest active interval, or None if no interval is active."""

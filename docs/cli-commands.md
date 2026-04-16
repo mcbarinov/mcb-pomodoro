@@ -118,23 +118,30 @@ Reset a running interval's counters in place, keeping the same id. Useful when y
 - Resets `worked_sec` to 0, sets `started_at` and `run_started_at` to now, clears `heartbeat_at`. Appends a new `started` event to the audit log.
 - Duration is preserved — restart does not accept a new duration. To change duration, `cancel` + `start <duration>`.
 - The existing timer worker keeps polling and picks up the reset values on its next tick. No worker respawn, no PID churn.
+- Requires interactive confirmation (type "yes") unless `--yes`/`-y` is provided.
+- In `--json` mode, `--yes` is required.
 
 ```
 $ mb-pomodoro edit restart
+Interval 42: 25:00, worked 01:30, started 2026-04-08 14:00.
+Type 'yes' to restart this interval: yes
+Interval 42 restarted. Duration: 25:00.
+
+$ mb-pomodoro edit restart -y
 Interval 42 restarted. Duration: 25:00.
 ```
 
-### `edit delete [interval_id]`
+### `edit delete <interval_id>`
 
 Permanently delete an interval from history.
 
-- `interval_id` — optional. Defaults to the latest interval.
+- `interval_id` — required. The interval to delete.
 - Requires interactive confirmation (type "yes") unless `--yes`/`-y` is provided.
 - In `--json` mode, `--yes` is required.
 - Completely removes the interval and all its events from the database.
 
 ```
-$ mb-pomodoro edit delete
+$ mb-pomodoro edit delete 42
 Interval 42: 25:00, running, worked 01:30, started 2026-04-08 14:00.
 Type 'yes' to permanently delete this interval: yes
 Interval 42 deleted (was running, 01:30 worked).
